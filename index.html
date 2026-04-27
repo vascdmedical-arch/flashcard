@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>診察会話 フラッシュカード</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #1a2744;
+    --teal: #2a9d8f;
+    --teal-light: #3bbfb0;
+    --cream: #f8f5f0;
+    --gold: #e9c46a;
+    --coral: #e76f51;
+    --white: #ffffff;
+    --shadow: 0 20px 60px rgba(26,39,68,0.18);
+    --shadow-sm: 0 4px 16px rgba(26,39,68,0.10);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--navy);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 16px 40px;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* background decoration */
+  body::before {
+    content: '';
+    position: fixed;
+    top: -200px; right: -200px;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(42,157,143,0.15) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  body::after {
+    content: '';
+    position: fixed;
+    bottom: -150px; left: -150px;
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(233,196,106,0.10) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 28px;
+    animation: fadeDown 0.6s ease both;
+  }
+  header h1 {
+    font-family: 'Lora', serif;
+    font-size: clamp(1.3rem, 5vw, 1.8rem);
+    color: var(--cream);
+    letter-spacing: 0.04em;
+    margin-bottom: 4px;
+  }
+  header p {
+    color: var(--teal-light);
+    font-size: 0.8rem;
+    font-weight: 300;
+    letter-spacing: 0.1em;
+  }
+
+  /* Progress bar */
+  .progress-wrap {
+    width: 100%;
+    max-width: 480px;
+    margin-bottom: 20px;
+    animation: fadeDown 0.6s 0.1s ease both;
+    opacity: 0;
+  }
+  .progress-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: rgba(255,255,255,0.5);
+    font-size: 0.75rem;
+    margin-bottom: 8px;
+  }
+  .progress-info .card-num {
+    color: var(--gold);
+    font-weight: 700;
+    font-size: 0.9rem;
+  }
+  .progress-bar-bg {
+    width: 100%;
+    height: 4px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--teal), var(--teal-light));
+    border-radius: 2px;
+    transition: width 0.5s cubic-bezier(.4,0,.2,1);
+  }
+
+  /* Stats */
+  .stats {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    animation: fadeDown 0.6s 0.15s ease both;
+    opacity: 0;
+  }
+  .stat-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-size: 0.78rem;
+    color: rgba(255,255,255,0.6);
+  }
+  .stat-chip .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+  }
+  .dot-ok { background: var(--teal); }
+  .dot-retry { background: var(--coral); }
+  .stat-chip b { color: var(--white); font-weight: 700; }
+
+  /* Card */
+  .card-scene {
+    width: 100%;
+    max-width: 480px;
+    perspective: 1200px;
+    margin-bottom: 20px;
+    animation: fadeUp 0.6s 0.2s ease both;
+    opacity: 0;
+  }
+  .card {
+    width: 100%;
+    min-height: 260px;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 0.6s cubic-bezier(.4,0,.2,1);
+    cursor: pointer;
+  }
+  .card.flipped { transform: rotateY(180deg); }
+
+  .card-face {
+    position: absolute;
+    inset: 0;
+    border-radius: 20px;
+    backface-visibility: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 36px 28px;
+    text-align: center;
+  }
+  .card-front {
+    background: var(--white);
+    box-shadow: var(--shadow);
+  }
+  .card-back {
+    background: linear-gradient(135deg, var(--teal) 0%, #1a6b61 100%);
+    transform: rotateY(180deg);
+    box-shadow: var(--shadow);
+  }
+
+  .card-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    padding: 4px 12px;
+    border-radius: 20px;
+  }
+  .card-front .card-label {
+    background: rgba(42,157,143,0.12);
+    color: var(--teal);
+  }
+  .card-back .card-label {
+    background: rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.9);
+  }
+
+  .card-text {
+    font-size: clamp(1rem, 4vw, 1.25rem);
+    line-height: 1.65;
+    font-weight: 500;
+  }
+  .card-front .card-text { color: var(--navy); }
+  .card-back .card-text { color: var(--white); font-family: 'Lora', serif; font-style: italic; }
+
+  .tap-hint {
+    position: absolute;
+    bottom: 14px;
+    right: 20px;
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    opacity: 0.4;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .card-front .tap-hint { color: var(--navy); }
+  .card-back .tap-hint { color: var(--white); }
+
+  /* Audio button */
+  .audio-btn {
+    margin-top: 20px;
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 50px;
+    padding: 10px 24px;
+    color: var(--white);
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 0.82rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.2s, transform 0.15s;
+    letter-spacing: 0.05em;
+  }
+  .audio-btn:hover { background: rgba(255,255,255,0.25); transform: scale(1.03); }
+  .audio-btn:active { transform: scale(0.97); }
+  .audio-btn svg { flex-shrink: 0; }
+
+  /* Action buttons */
+  .actions {
+    width: 100%;
+    max-width: 480px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+    animation: fadeUp 0.6s 0.3s ease both;
+    opacity: 0;
+  }
+  .btn {
+    border: none;
+    border-radius: 14px;
+    padding: 16px 12px;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s, opacity 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    letter-spacing: 0.03em;
+  }
+  .btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none !important; }
+  .btn:not(:disabled):hover { transform: translateY(-2px); }
+  .btn:not(:disabled):active { transform: translateY(0); }
+
+  .btn-ok {
+    background: linear-gradient(135deg, var(--teal) 0%, #1a6b61 100%);
+    color: var(--white);
+    box-shadow: 0 6px 24px rgba(42,157,143,0.35);
+  }
+  .btn-retry {
+    background: linear-gradient(135deg, var(--coral) 0%, #c45b3c 100%);
+    color: var(--white);
+    box-shadow: 0 6px 24px rgba(231,111,81,0.35);
+  }
+
+  /* Navigation */
+  .nav {
+    width: 100%;
+    max-width: 480px;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    animation: fadeUp 0.6s 0.35s ease both;
+    opacity: 0;
+  }
+  .btn-nav {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 12px;
+    padding: 12px 28px;
+    color: var(--cream);
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 0.85rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.2s, transform 0.15s;
+    font-weight: 500;
+  }
+  .btn-nav:hover { background: rgba(255,255,255,0.13); transform: translateY(-1px); }
+  .btn-nav:active { transform: translateY(0); }
+  .btn-nav:disabled { opacity: 0.3; cursor: not-allowed; transform: none !important; }
+
+  .btn-shuffle {
+    background: rgba(233,196,106,0.12);
+    border-color: rgba(233,196,106,0.25);
+    color: var(--gold);
+  }
+  .btn-shuffle:hover { background: rgba(233,196,106,0.22); }
+
+  /* Completion screen */
+  .completion {
+    display: none;
+    width: 100%;
+    max-width: 480px;
+    background: var(--white);
+    border-radius: 24px;
+    padding: 48px 32px;
+    text-align: center;
+    box-shadow: var(--shadow);
+    animation: fadeUp 0.5s ease both;
+  }
+  .completion.show { display: block; }
+  .completion-icon { font-size: 3rem; margin-bottom: 16px; }
+  .completion h2 {
+    font-family: 'Lora', serif;
+    color: var(--navy);
+    font-size: 1.5rem;
+    margin-bottom: 8px;
+  }
+  .completion p { color: rgba(26,39,68,0.55); font-size: 0.9rem; margin-bottom: 28px; line-height: 1.6; }
+  .completion-stats {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    margin-bottom: 32px;
+  }
+  .completion-stat { text-align: center; }
+  .completion-stat .num { font-size: 2rem; font-weight: 700; line-height: 1; }
+  .completion-stat .lbl { font-size: 0.75rem; color: rgba(26,39,68,0.5); margin-top: 4px; }
+  .num-ok { color: var(--teal); }
+  .num-retry { color: var(--coral); }
+
+  .btn-restart {
+    background: var(--navy);
+    color: var(--white);
+    border: none;
+    border-radius: 14px;
+    padding: 16px 40px;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.15s, background 0.2s;
+    display: block;
+    width: 100%;
+    margin-bottom: 12px;
+  }
+  .btn-restart:hover { background: var(--teal); transform: translateY(-2px); }
+
+  .btn-retry-only {
+    background: transparent;
+    color: var(--coral);
+    border: 2px solid var(--coral);
+    border-radius: 14px;
+    padding: 14px 40px;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.15s, background 0.2s;
+    display: block;
+    width: 100%;
+  }
+  .btn-retry-only:hover { background: rgba(231,111,81,0.08); transform: translateY(-2px); }
+  .btn-retry-only:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes cardSwap {
+    0%   { opacity: 1; transform: translateX(0) scale(1); }
+    40%  { opacity: 0; transform: translateX(-40px) scale(0.92); }
+    60%  { opacity: 0; transform: translateX(40px) scale(0.92); }
+    100% { opacity: 1; transform: translateX(0) scale(1); }
+  }
+  .card-scene.animating .card {
+    animation: cardSwap 0.4s ease both;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>診察会話 フラッシュカード</h1>
+  <p>MEDICAL CONSULTATION FLASHCARDS</p>
+</header>
+
+<div class="progress-wrap">
+  <div class="progress-info">
+    <span>進捗</span>
+    <span class="card-num" id="cardNum">1 / 88</span>
+  </div>
+  <div class="progress-bar-bg">
+    <div class="progress-bar-fill" id="progressFill" style="width:1%"></div>
+  </div>
+</div>
+
+<div class="stats">
+  <div class="stat-chip"><span class="dot dot-ok"></span> 覚えた <b id="okCount">0</b></div>
+  <div class="stat-chip"><span class="dot dot-retry"></span> 要復習 <b id="retryCount">0</b></div>
+</div>
+
+<div class="card-scene" id="cardScene">
+  <div class="card" id="card" onclick="flipCard()">
+    <div class="card-face card-front">
+      <div class="card-label">🇯🇵 日本語</div>
+      <div class="card-text" id="jaText"></div>
+      <div class="tap-hint">↩ タップして英語を見る</div>
+    </div>
+    <div class="card-face card-back">
+      <div class="card-label">🇺🇸 English</div>
+      <div class="card-text" id="enText"></div>
+      <button class="audio-btn" id="audioBtn" onclick="speakEnglish(event)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+          <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+        </svg>
+        英語を読み上げる
+      </button>
+      <div class="tap-hint">↩ タップして戻る</div>
+    </div>
+  </div>
+</div>
+
+<div class="actions">
+  <button class="btn btn-retry" id="btnRetry" onclick="markCard('retry')" disabled>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.96"/></svg>
+    もう一度
+  </button>
+  <button class="btn btn-ok" id="btnOk" onclick="markCard('ok')" disabled>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+    覚えた！
+  </button>
+</div>
+
+<div class="nav">
+  <button class="btn-nav" id="btnPrev" onclick="navigate(-1)" disabled>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    前へ
+  </button>
+  <button class="btn-nav btn-shuffle" onclick="shuffleCards()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/></svg>
+    シャッフル
+  </button>
+  <button class="btn-nav" id="btnNext" onclick="navigate(1)">
+    次へ
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+  </button>
+</div>
+
+<div class="completion" id="completion">
+  <div class="completion-icon">🎉</div>
+  <h2>完了しました！</h2>
+  <p>全カードを確認しました。<br>結果を確認して、もう一度挑戦しましょう。</p>
+  <div class="completion-stats">
+    <div class="completion-stat">
+      <div class="num num-ok" id="finalOk">0</div>
+      <div class="lbl">覚えた</div>
+    </div>
+    <div class="completion-stat">
+      <div class="num num-retry" id="finalRetry">0</div>
+      <div class="lbl">要復習</div>
+    </div>
+  </div>
+  <button class="btn-restart" onclick="restartAll()">最初からやり直す</button>
+  <button class="btn-retry-only" id="btnRetryOnly" onclick="restartRetry()">要復習のみ再挑戦</button>
+</div>
+
+<script>
+const ALL_CARDS = [
+  ["こんにちは", "Hello"],
+  ["院長の近藤と申します。", "My name is Kondo, the clinic director."],
+  ["席にお座りください。", "Please have a seat."],
+  ["病気について詳しくお話を聞かせてください。", "Please tell me more about your condition."],
+  ["どちらの脚になりますか？", "Which leg is it?"],
+  ["右ですね。", "The right one, I see."],
+  ["どのような静脈瘤がありますか？", "What kind of varicose veins do you have?"],
+  ["症状について聞かせてください。", "Please tell me about your symptoms."],
+  ["むくみはありますか？左右差はありますか？", "Do you have any swelling? Is there a difference between the left and right sides?"],
+  ["重さだるさはありますか？", "Do you feel any heaviness or fatigue?"],
+  ["痛みはどうですか？", "How is the pain?"],
+  ["かゆみはありますか？", "Do you experience itching?"],
+  ["足の皮膚の変化はありますか？", "Have you noticed any changes in the skin on your feet?"],
+  ["脚つれはありますか？", "Do you experience leg cramps?"],
+  ["それではそれ以外のことを聞かせてください。", "Now, let me ask you about some other things."],
+  ["出産歴はありますか？", "Do you have a history of childbirth?"],
+  ["何回出産されましたか？", "How many times have you given birth?"],
+  ["立ち仕事の時期はありましたか？現在はどうですか？", "Have you ever had a job that required standing for long periods? What about now?"],
+  ["ご家族に下肢静脈瘤の方はいますか？", "Does anyone in your family have varicose veins?"],
+  ["なにか一生懸命やっていた運動はありますか？", "Have you ever been actively involved in any sports or exercise?"],
+  ["他の病気について聞かせてください。", "Please tell me about any other medical conditions you have."],
+  ["持病はありますか？", "Do you have any chronic conditions?"],
+  ["手術は受けたことがありますか？", "Have you ever had surgery?"],
+  ["どのような手術を受けましたか？", "What kind of surgery did you have?"],
+  ["アレルギーはありますか？", "Do you have any allergies?"],
+  ["内服薬について教えてください。", "Please tell me about any medications you are currently taking."],
+  ["それでは脚の診察をしましょう。", "Now, let's examine your leg."],
+  ["先ずは、一度私にも足の診察をさせてください。", "First, let me examine your leg."],
+  ["脚の超音波検査を行います。", "I'm going to perform an ultrasound on your leg."],
+  ["ズボンと靴下を脱いでください。", "Please take off your pants and socks."],
+  ["立った状態で検査を行います。", "We'll perform the exam while you're standing."],
+  ["後ろを向いてください。", "Please turn around."],
+  ["それではこちらを向いてください。", "Now, please turn this way."],
+  ["これは脚の横断面です。", "This is a cross-section of your leg."],
+  ["これが皮膚で、その下が皮下脂肪です。ここに見える黒い円が静脈の断面になります。通常の大きさは直径で２−３mm程度です。これが約１０mm程度まで拡張しています。", "This is the skin, and beneath it is subcutaneous fat. The black circles you see here are cross-sections of the veins. Normally, they are about 2–3 mm in diameter. Here, they have dilated to about 10 mm."],
+  ["足の付け根まで見ていきましょう。原因は個々の足の付け根にあります。ここからこの静脈内を血液が下に向かって逆流しています。それが原因で下腿部の静脈が膨れて静脈瘤になっています。理由は静脈内の静脈弁が壊れたことで下に向かって流れ始めているからです。", "Let's take a look all the way up to the groin. The cause lies in the individual veins at the groin. From here, blood is flowing backward downward inside this vein. This causes the veins in the lower leg to swell, resulting in varicose veins. The reason is that the valves inside the vein have failed, allowing blood to flow downward."],
+  ["検査はこれで終了です。", "That concludes the examination."],
+  ["ズボンを履いてください。", "Please put your pants back on."],
+  ["静脈瘤について説明します。", "I'll explain varicose veins."],
+  ["今回は足の付け根から悪くなる大きなタイプの静脈瘤です。", "This is a major type of varicose vein that originates in the groin area."],
+  ["この病気は急に悪化したり、命に関わるようなことはありません。", "This condition does not worsen suddenly, nor is it life-threatening."],
+  ["ただ自然に治ることもありません。徐々に進行していきます。", "However, it does not resolve on its own. It progresses gradually."],
+  ["治療は２種類です。", "There are two types of treatment."],
+  ["一つ目は、弾性ストッキング着用による保存的な治療です。これのメリットは、履くだけで症状がすることです。デメリットは、これで静脈瘤がなくなるわけではなく、あくまで対処療法ということです。", "The first is conservative treatment involving the use of compression stockings. The advantage of this is that symptoms improve simply by wearing them. The disadvantage is that it does not eliminate the varicose veins; it is strictly a symptomatic treatment."],
+  ["２つ目は、手術という方法になります。カテーテルを使った焼灼術です。２０分程度で終了する日帰り手術です。", "The second option is surgery: endovenous laser ablation using a catheter. It is an outpatient procedure that takes about 20 minutes."],
+  ["どちらを希望されますか？", "Which option would you prefer?"],
+  ["手術を受ける場合は、術前の検査を受けてもらいます。後日検査に来てもらい、心電図、採血の検査を受けてもらいます。またそのときに手術について詳しく説明させていただきます。", "If you choose to have surgery, you will need to undergo preoperative testing. Please come in for an appointment at a later date to have an electrocardiogram and blood tests. At that time, we will also provide a detailed explanation of the procedure."],
+  ["ストッキングは、後で看護師と一緒にフィッティングをしましょう。彼女たちは弾性ストッキングの専門家なのでよく相談してください。", "As for the compression stockings, we'll have you try them on with a nurse later. They are experts in compression stockings, so please feel free to consult with them."],
+  ["それでは検査の日、手術の日を看護師さんと一緒に決めてください。", "Please work with the nurse to schedule the date for your tests and the surgery."],
+  ["静脈瘤の手術について説明していきます。", "I will now explain the varicose vein surgery."],
+  ["先ずは受けてもらった検査について見ていきます。", "First, let's review the test results you received."],
+  ["こちらが心電図になりますが特に問題ありません。", "This is your ECG; there are no particular issues."],
+  ["これが、採血データの結果です。", "Here are the results of your blood tests."],
+  ["こちらも特に問題ありません。", "There are no particular issues here either."],
+  ["次に静脈瘤について説明します。", "Next, I'll explain varicose veins."],
+  ["こちらの絵を使って説明します。", "I'll use this diagram to explain."],
+  ["脚の静脈は2種類あります。", "There are two types of veins in the legs."],
+  ["一つ目は脚の奥を流れる静脈です。", "The first type runs deep within the leg."],
+  ["深部静脈と言います。", "These are called deep veins."],
+  ["直径で２ｃｍある、太い静脈です。", "They are thick veins with a diameter of about 2 cm."],
+  ["この中を上に向かって血液が流れます。", "Blood flows upward through these veins."],
+  ["この血管は特に問題なく、良く血液は流れています。", "These veins function normally, and blood flows through them smoothly."],
+  ["もう一つは、足の表面を流れる静脈です。", "The other is the veins that run along the surface of the leg."],
+  ["細い静脈ですが、沢山存在しています。", "They are thin veins, but there are many of them."],
+  ["その中で、一番代表的な静脈がこれになります。", "Among them, this is the most representative vein."],
+  ["名前は大伏在静脈と言われています。", "It is called the great saphenous vein."],
+  ["表面の静脈の中で一番大きな静脈です。", "It is the largest of the superficial veins."],
+  ["ただ、直径で約２mmの血管です。", "However, it is a blood vessel with a diameter of about 2 mm."],
+  ["この中を血液は上に向かって流れています。", "Blood flows upward through this vein."],
+  ["前回は、この静脈の弁が壊れ、血液が逆流したため、", "Last time, the valves in this vein failed, causing blood to flow backward,"],
+  ["この静脈が太くなり、周りに静脈瘤賀出てきたのです。", "causing the vein to enlarge and varicose veins to appear around it."],
+  ["前回の手術では、この大伏在静脈の抜去術を行っています。", "In the previous surgery, we performed a saphenectomy to remove this great saphenous vein."],
+  ["残念ながら、今回はその場所から再発が起きてしまいました。", "Unfortunately, a recurrence has occurred at that same site this time."],
+  ["今回は足のつけ根近くの大伏在静脈の枝の静脈の弁が壊れ、逆流が起きて", "This time, the valves in a branch of the great saphenous vein near the groin failed, causing reflux"],
+  ["静脈が拡張してしまいました。", "causing the vein to dilate."],
+  ["手術では、この拡張した静脈をレーザーで焼灼し閉塞させます。", "During the surgery, we will use a laser to cauterize and close off this dilated vein."],
+  ["また残りの静脈瘤は硬化療法を行います。", "We will also perform sclerotherapy on the remaining varicose veins."],
+  ["硬化療法は注射で行う治療です。", "Sclerotherapy is a treatment performed by injection."],
+  ["レーザーで焼灼した静脈は徐々に吸収されて、一年ほどで消失します。", "The vein treated with laser ablation will gradually be reabsorbed and disappear within about a year."],
+  ["残った静脈瘤は3か月後をめどに、硬化療法で治療します。", "The remaining varicose veins will be treated with sclerotherapy, typically around three months later."],
+  ["手術は局所麻酔で行います。手術の間は少し眠ってもらいます。", "The procedure is performed under local anesthesia. You will be put to sleep briefly during the procedure."],
+  ["手術時間は約20分です。終わればすぐ歩けます。痛みも特にありません。", "The procedure takes about 20 minutes. You will be able to walk immediately afterward. There is no significant pain."],
+  ["翌日からは、大腿部で突っ張る感じや、圧迫痛が少しあります。", "Starting the next day, you may experience a slight tightness or tenderness in the thigh."],
+  ["合併症についてお話します。出血、創感染はめったにありません。内出血が時々ありますが、一週間ほどで、消えていきます。血栓性静脈炎がまれに起きますが、これも自然に解消します。神経障害、アレルギーはめったにありません。", "Now, let me discuss complications. Bleeding and wound infections are very rare. Bruising occasionally occurs, but it usually disappears within about a week. Thrombophlebitis rarely occurs, but it also resolves on its own. Nerve damage and allergic reactions are very rare."],
+  ["私の話はここまでです。", "That concludes my explanation."],
+  ["何か質問はありますか？", "Do you have any questions?"],
+  ["これは同意書になります。", "This is the consent form."],
+  ["ここにサインをして、手術の当日に持ってきてください。", "Please sign here and bring it with you on the day of the surgery."]
+];
+
+let deck = [...ALL_CARDS];
+let currentIndex = 0;
+let isFlipped = false;
+let results = {}; // index -> 'ok' | 'retry'
+let retryMode = false;
+
+function updateCard() {
+  const [ja, en] = deck[currentIndex];
+  document.getElementById('jaText').textContent = ja;
+  document.getElementById('enText').textContent = en;
+
+  // Reset flip
+  isFlipped = false;
+  document.getElementById('card').classList.remove('flipped');
+  document.getElementById('btnOk').disabled = true;
+  document.getElementById('btnRetry').disabled = true;
+
+  // Progress
+  const total = deck.length;
+  const done = Object.keys(results).length;
+  document.getElementById('cardNum').textContent = `${currentIndex + 1} / ${total}`;
+  const pct = ((currentIndex) / total) * 100;
+  document.getElementById('progressFill').style.width = Math.max(1, pct) + '%';
+
+  // Nav buttons
+  document.getElementById('btnPrev').disabled = currentIndex === 0;
+  document.getElementById('btnNext').disabled = currentIndex >= deck.length - 1;
+
+  // Stats
+  const okArr = Object.values(results).filter(v => v === 'ok');
+  const retryArr = Object.values(results).filter(v => v === 'retry');
+  document.getElementById('okCount').textContent = okArr.length;
+  document.getElementById('retryCount').textContent = retryArr.length;
+}
+
+function flipCard() {
+  isFlipped = !isFlipped;
+  document.getElementById('card').classList.toggle('flipped', isFlipped);
+  if (isFlipped) {
+    document.getElementById('btnOk').disabled = false;
+    document.getElementById('btnRetry').disabled = false;
+  }
+}
+
+function speakEnglish(e) {
+  e.stopPropagation();
+  const text = deck[currentIndex][1];
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+    const utt = new SpeechSynthesisUtterance(text);
+    utt.lang = 'en-US';
+    utt.rate = 0.9;
+    window.speechSynthesis.speak(utt);
+  } else {
+    alert('お使いのブラウザは音声読み上げに対応していません。');
+  }
+}
+
+function markCard(type) {
+  results[currentIndex] = type;
+  animateNext();
+}
+
+function animateNext() {
+  const scene = document.getElementById('cardScene');
+  scene.classList.add('animating');
+  setTimeout(() => {
+    scene.classList.remove('animating');
+    if (currentIndex < deck.length - 1) {
+      currentIndex++;
+      updateCard();
+    } else {
+      showCompletion();
+    }
+  }, 400);
+}
+
+function navigate(dir) {
+  const next = currentIndex + dir;
+  if (next < 0 || next >= deck.length) return;
+  currentIndex = next;
+  updateCard();
+}
+
+function shuffleCards() {
+  for (let i = deck.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [deck[i], deck[j]] = [deck[j], deck[i]];
+  }
+  currentIndex = 0;
+  results = {};
+  updateCard();
+}
+
+function showCompletion() {
+  document.getElementById('cardScene').style.display = 'none';
+  document.querySelector('.actions').style.display = 'none';
+  document.querySelector('.nav').style.display = 'none';
+  document.querySelector('.stats').style.display = 'none';
+  document.querySelector('.progress-wrap').style.display = 'none';
+
+  const okCount = Object.values(results).filter(v => v === 'ok').length;
+  const retryCount = Object.values(results).filter(v => v === 'retry').length;
+  document.getElementById('finalOk').textContent = okCount;
+  document.getElementById('finalRetry').textContent = retryCount;
+  document.getElementById('btnRetryOnly').disabled = retryCount === 0;
+
+  document.getElementById('completion').classList.add('show');
+}
+
+function restartAll() {
+  deck = [...ALL_CARDS];
+  currentIndex = 0;
+  results = {};
+  retryMode = false;
+  hideCompletion();
+  updateCard();
+}
+
+function restartRetry() {
+  const retryCards = deck.filter((_, i) => results[i] === 'retry');
+  if (retryCards.length === 0) return;
+  deck = retryCards;
+  currentIndex = 0;
+  results = {};
+  retryMode = true;
+  hideCompletion();
+  updateCard();
+}
+
+function hideCompletion() {
+  document.getElementById('cardScene').style.display = '';
+  document.querySelector('.actions').style.display = '';
+  document.querySelector('.nav').style.display = '';
+  document.querySelector('.stats').style.display = '';
+  document.querySelector('.progress-wrap').style.display = '';
+  document.getElementById('completion').classList.remove('show');
+}
+
+// Init
+updateCard();
+</script>
+</body>
+</html>
