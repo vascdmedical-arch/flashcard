@@ -13,7 +13,7 @@ body::before{content:'';position:fixed;top:-200px;right:-200px;width:600px;heigh
 header{text-align:center;margin-bottom:14px}
 header h1{font-family:'Lora',serif;font-size:clamp(1.1rem,4.5vw,1.5rem);color:var(--cream);letter-spacing:.04em;margin-bottom:2px}
 header p{color:var(--teal-light);font-size:.72rem;font-weight:300;letter-spacing:.1em}
-.mode-bar{display:flex;gap:8px;margin-bottom:14px}
+.mode-bar{width:100%;max-width:480px;display:flex;gap:8px;margin-bottom:14px}
 .mode-btn{flex:1;max-width:160px;padding:10px 0;border:none;border-radius:50px;font-family:'Noto Sans JP',sans-serif;font-size:.8rem;font-weight:700;cursor:pointer;transition:all .2s}
 .mode-btn.active{background:var(--teal);color:#fff;box-shadow:0 4px 16px rgba(42,157,143,.4)}
 .mode-btn:not(.active){background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.6)}
@@ -41,7 +41,7 @@ header p{color:var(--teal-light);font-size:.72rem;font-weight:300;letter-spacing
 .card-label{font-size:.63rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;margin-bottom:12px;padding:3px 10px;border-radius:20px}
 .card-front .card-label{background:rgba(42,157,143,.12);color:var(--teal)}
 .card-back .card-label{background:rgba(255,255,255,.15);color:rgba(255,255,255,.9)}
-.card-text{font-size:clamp(.92rem,3.8vw,1.18rem);line-height:1.7;font-weight:500}
+.card-text{font-size:clamp(.92rem,3.8vw,1.18rem);line-height:1.7;font-weight:500;overflow-wrap:anywhere}
 .card-front .card-text{color:var(--navy)}
 .card-back .card-text{color:#fff;font-family:'Lora',serif;font-style:italic}
 .tap-hint{position:absolute;bottom:11px;right:14px;font-size:.6rem;letter-spacing:.06em;opacity:.35}
@@ -62,10 +62,13 @@ header p{color:var(--teal-light);font-size:.72rem;font-weight:300;letter-spacing
 .btn-nav:active{background:rgba(255,255,255,.18)}
 .btn-nav:disabled{opacity:.3;pointer-events:none}
 .btn-shuffle{background:rgba(233,196,106,.12);border-color:rgba(233,196,106,.25);color:var(--gold)}
+.btn-reset-inline{width:100%;max-width:480px;margin-top:8px;padding:11px;border:1px solid rgba(255,255,255,.12);border-radius:12px;background:rgba(255,255,255,.05);color:rgba(255,255,255,.65);font-family:'Noto Sans JP',sans-serif;font-size:.78rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
+.btn-reset-inline:active{background:rgba(255,255,255,.14)}
 
 /* completion */
 .completion{display:none;width:100%;max-width:480px;background:var(--white);border-radius:24px;padding:36px 24px;text-align:center;box-shadow:var(--shadow)}
 .completion.show{display:block}
+#flashSection.completed .card-viewport,#flashSection.completed .swipe-hint,#flashSection.completed .actions,#flashSection.completed .nav,#flashSection.completed .btn-reset-inline{display:none}
 .completion-icon{font-size:2.6rem;margin-bottom:10px}
 .completion h2{font-family:'Lora',serif;color:var(--navy);font-size:1.35rem;margin-bottom:6px}
 .completion p{color:rgba(26,39,68,.5);font-size:.83rem;margin-bottom:22px;line-height:1.6}
@@ -89,8 +92,8 @@ header p{color:var(--teal-light);font-size:.72rem;font-weight:300;letter-spacing
 .np-label{font-size:.63rem;font-weight:700;letter-spacing:.15em;padding:3px 10px;border-radius:20px}
 .np-label.ja{background:rgba(42,157,143,.12);color:var(--teal)}
 .np-label.en{background:rgba(233,196,106,.15);color:#b8861a}
-.np-text-ja{font-size:clamp(.92rem,3.8vw,1.12rem);color:var(--navy);font-weight:500;line-height:1.7}
-.np-text-en{font-size:clamp(.85rem,3.5vw,1rem);color:#2a6b63;font-family:'Lora',serif;font-style:italic;line-height:1.7}
+.np-text-ja{font-size:clamp(.92rem,3.8vw,1.12rem);color:var(--navy);font-weight:500;line-height:1.7;overflow-wrap:anywhere}
+.np-text-en{font-size:clamp(.85rem,3.5vw,1rem);color:#2a6b63;font-family:'Lora',serif;font-style:italic;line-height:1.7;overflow-wrap:anywhere}
 .np-counter{font-size:.7rem;color:rgba(26,39,68,.4);margin-top:2px}
 .np-swipe-hint{font-size:.62rem;color:rgba(26,39,68,.25);letter-spacing:.04em}
 .waveform{display:flex;align-items:center;gap:3px;height:26px;margin:2px 0}
@@ -182,6 +185,11 @@ header p{color:var(--teal-light);font-size:.72rem;font-weight:300;letter-spacing
     </button>
   </div>
 
+  <button class="btn-reset-inline" onclick="restartAll()">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><polyline points="3 4 3 10 9 10"/></svg>
+    最初からやり直す
+  </button>
+
   <div class="completion" id="completion">
     <div class="completion-icon">🎉</div>
     <h2>完了しました！</h2>
@@ -233,7 +241,7 @@ header p{color:var(--teal-light);font-size:.72rem;font-weight:300;letter-spacing
   </div>
 
   <div class="bg-notice">
-    🔒 画面オフ・他アプリ使用中でも音声は継続します。<br>停止するには「停止」ボタンを押してください。
+    🔒 画面オフ・他アプリ使用中は端末の仕様で音声が止まることがあります。<br>練習中は画面を開いたままご利用ください。
   </div>
 </div>
 
@@ -356,7 +364,10 @@ const ALL_CARDS = [
 // ===========================
 // STATE
 // ===========================
-let deck = [...ALL_CARDS];
+const BASE_DECK = ALL_CARDS.map((pair, id) => ({ id, ja: pair[0], en: pair[1] }));
+const STORAGE_KEY = 'hanaFlashcardsProgress.v2';
+
+let deck = [...BASE_DECK];
 let flashIndex = 0;
 let flippedSet = new Set(); // which deck positions are flipped
 let results = {};
@@ -367,6 +378,70 @@ let audioPlaying = false;
 let audioSpeed = 0.9;
 let audioIntervalMs = 1200;
 let audioAbort = false;
+let audioRunId = 0;
+let suppressNextTap = false;
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, char => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[char]));
+}
+
+function clampIndex(value, total) {
+  if (!total) return 0;
+  const num = Number.isFinite(Number(value)) ? Number(value) : 0;
+  return Math.min(Math.max(0, Math.floor(num)), total - 1);
+}
+
+function normalizeResults(savedResults) {
+  if (!savedResults || typeof savedResults !== 'object') return {};
+  return Object.fromEntries(
+    Object.entries(savedResults).filter(([id, value]) => BASE_DECK[Number(id)] && (value === 'ok' || value === 'retry'))
+  );
+}
+
+function saveProgress() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      deckIds: deck.map(card => card.id),
+      flashIndex,
+      results,
+      currentMode,
+      audioIndex,
+      audioSpeed,
+      audioIntervalMs
+    }));
+  } catch (_) {}
+}
+
+function loadProgress() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const saved = JSON.parse(raw);
+
+    if (Array.isArray(saved.deckIds)) {
+      const savedDeck = saved.deckIds.map(id => BASE_DECK[Number(id)]).filter(Boolean);
+      if (savedDeck.length) deck = savedDeck;
+    }
+
+    results = normalizeResults(saved.results);
+    flashIndex = clampIndex(saved.flashIndex, deck.length);
+    audioIndex = clampIndex(saved.audioIndex, ALL_CARDS.length);
+
+    const savedSpeed = Number(saved.audioSpeed);
+    if ([0.7, 0.9, 1.1].includes(savedSpeed)) audioSpeed = savedSpeed;
+
+    const savedInterval = Number(saved.audioIntervalMs);
+    if ([500, 1200, 2500].includes(savedInterval)) audioIntervalMs = savedInterval;
+
+    if (saved.currentMode === 'audio') currentMode = 'audio';
+  } catch (_) {}
+}
 
 // ===========================
 // BUILD DOM
@@ -374,20 +449,20 @@ let audioAbort = false;
 function buildFlashCards() {
   const track = document.getElementById('cardTrack');
   track.innerHTML = '';
-  deck.forEach((pair, i) => {
+  deck.forEach((card, i) => {
     const slot = document.createElement('div');
     slot.className = 'card-slot';
     slot.innerHTML = `
       <div class="card" id="fc${i}" onclick="tapCard(${i})">
         <div class="card-face card-front">
           <div class="card-label">🇯🇵 日本語</div>
-          <div class="card-text">${pair[0]}</div>
+          <div class="card-text">${escapeHtml(card.ja)}</div>
           <div class="tap-hint">↩ タップして英語を見る</div>
         </div>
         <div class="card-face card-back">
           <div class="card-label">🇺🇸 English</div>
-          <div class="card-text">${pair[1]}</div>
-          <button class="audio-btn" onclick="speakOne(event,'${pair[1].replace(/'/g,"\\'")}','en-US')">
+          <div class="card-text">${escapeHtml(card.en)}</div>
+          <button class="audio-btn" onclick="speakCardEnglish(event,${i})">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
             英語を読み上げる
           </button>
@@ -407,14 +482,14 @@ function buildAudioSlots() {
     slot.innerHTML = `
       <div class="now-playing-card">
         <div class="np-label ja">🇯🇵 日本語 → 🇺🇸 English</div>
-        <div class="np-text-ja">${pair[0]}</div>
+        <div class="np-text-ja">${escapeHtml(pair[0])}</div>
         <div class="waveform paused" id="wf${i}">
           <div class="wave-bar"></div><div class="wave-bar"></div>
           <div class="wave-bar"></div><div class="wave-bar"></div>
           <div class="wave-bar"></div><div class="wave-bar"></div>
           <div class="wave-bar"></div><div class="wave-bar"></div>
         </div>
-        <div class="np-text-en">${pair[1]}</div>
+        <div class="np-text-en">${escapeHtml(pair[1])}</div>
         <div class="np-counter">${i+1} / ${ALL_CARDS.length}</div>
         <div class="np-swipe-hint">← スワイプで移動 →</div>
       </div>`;
@@ -425,7 +500,7 @@ function buildAudioSlots() {
 // ===========================
 // MODE
 // ===========================
-function setMode(mode) {
+function setMode(mode, resetAudio=true) {
   currentMode = mode;
   document.getElementById('modeFlash').classList.toggle('active', mode==='flash');
   document.getElementById('modeAudio').classList.toggle('active', mode==='audio');
@@ -433,20 +508,32 @@ function setMode(mode) {
   document.getElementById('audioMode').classList.toggle('show', mode==='audio');
   document.getElementById('statsBar').style.display = mode==='flash' ? '' : 'none';
   if (mode==='audio') {
-    stopAudio();
-    slideAudio(0, false);
+    if (resetAudio) stopAudio();
+    else {
+      audioPlaying = false;
+      audioAbort = true;
+      setBtnPlay(false);
+      slideAudio(audioIndex, false);
+    }
     updateProgress(audioIndex, ALL_CARDS.length);
   } else {
+    if (audioPlaying) stopAudio();
     slideFlashTo(flashIndex, false);
     updateProgress(flashIndex, deck.length);
     updateStats();
   }
+  saveProgress();
 }
 
 // ===========================
 // FLASH CARD LOGIC
 // ===========================
 function tapCard(i) {
+  if (suppressNextTap || document.getElementById('completion').classList.contains('show')) {
+    suppressNextTap = false;
+    return;
+  }
+  if (i !== flashIndex) return;
   const card = document.getElementById('fc'+i);
   if (!card) return;
   const isFlipped = flippedSet.has(i);
@@ -459,6 +546,7 @@ function tapCard(i) {
 
 function slideFlashTo(idx, animate=true) {
   const track = document.getElementById('cardTrack');
+  idx = clampIndex(idx, deck.length);
   if (!animate) track.classList.add('no-transition');
   track.style.transform = `translateX(-${idx * 100}%)`;
   if (!animate) requestAnimationFrame(() => requestAnimationFrame(() => track.classList.remove('no-transition')));
@@ -471,6 +559,7 @@ function slideFlashTo(idx, animate=true) {
   document.getElementById('btnNext').disabled = idx >= deck.length - 1;
   updateProgress(idx, deck.length);
   updateStats();
+  saveProgress();
 }
 
 function slideFlash(dir) {
@@ -480,7 +569,9 @@ function slideFlash(dir) {
 }
 
 function markCard(type) {
-  results[flashIndex] = type;
+  const currentCard = deck[flashIndex];
+  if (!currentCard) return;
+  results[currentCard.id] = type;
   updateStats();
   if (flashIndex < deck.length - 1) {
     slideFlashTo(flashIndex + 1);
@@ -497,36 +588,46 @@ function updateStats() {
 }
 
 function updateProgress(idx, total) {
-  document.getElementById('cardNum').textContent = `${idx+1} / ${total}`;
-  document.getElementById('progressFill').style.width = Math.max(1,(idx/total)*100)+'%';
+  const safeTotal = Math.max(1, total);
+  const current = Math.min(idx + 1, safeTotal);
+  document.getElementById('cardNum').textContent = `${current} / ${safeTotal}`;
+  document.getElementById('progressFill').style.width = Math.max(1,(current/safeTotal)*100)+'%';
 }
 
 function shuffleCards() {
   for (let i=deck.length-1;i>0;i--) { const j=Math.floor(Math.random()*(i+1));[deck[i],deck[j]]=[deck[j],deck[i]]; }
   flippedSet.clear(); results = {};
+  flashIndex = 0;
+  document.getElementById('flashSection').classList.remove('completed');
+  document.getElementById('completion').classList.remove('show');
   buildFlashCards();
   slideFlashTo(0, false);
 }
 
 function showCompletion() {
+  document.getElementById('flashSection').classList.add('completed');
   document.getElementById('completion').classList.add('show');
+  document.getElementById('progressFill').style.width = '100%';
   const ok=Object.values(results).filter(v=>v==='ok').length;
   const retry=Object.values(results).filter(v=>v==='retry').length;
   document.getElementById('finalOk').textContent=ok;
   document.getElementById('finalRetry').textContent=retry;
   document.getElementById('btnRetryOnly').disabled=retry===0;
+  saveProgress();
 }
 
 function restartAll() {
-  deck=[...ALL_CARDS]; flippedSet.clear(); results={};
+  deck=[...BASE_DECK]; flippedSet.clear(); results={}; flashIndex=0;
+  document.getElementById('flashSection').classList.remove('completed');
   document.getElementById('completion').classList.remove('show');
   buildFlashCards(); slideFlashTo(0,false);
 }
 
 function restartRetry() {
-  const retryCards = deck.filter((_,i)=>results[i]==='retry');
+  const retryCards = deck.filter(card=>results[card.id]==='retry');
   if (!retryCards.length) return;
-  deck=retryCards; flippedSet.clear(); results={};
+  deck=retryCards; flippedSet.clear(); results={}; flashIndex=0;
+  document.getElementById('flashSection').classList.remove('completed');
   document.getElementById('completion').classList.remove('show');
   buildFlashCards(); slideFlashTo(0,false);
 }
@@ -535,7 +636,12 @@ function restartRetry() {
 // SWIPE (universal: touch & mouse)
 // ===========================
 function addSwipe(el, onLeft, onRight) {
-  let startX=0, startY=0, moved=false;
+  let startX=0, startY=0, moved=false, mouseDown=false;
+
+  function suppressTapBriefly() {
+    suppressNextTap = true;
+    setTimeout(() => { suppressNextTap = false; }, 250);
+  }
 
   el.addEventListener('touchstart', e=>{
     startX=e.touches[0].clientX;
@@ -551,6 +657,7 @@ function addSwipe(el, onLeft, onRight) {
     const dx=e.changedTouches[0].clientX-startX;
     const dy=e.changedTouches[0].clientY-startY;
     if (Math.abs(dx)>Math.abs(dy) && Math.abs(dx)>35) {
+      suppressTapBriefly();
       if (dx<0) onLeft(); else onRight();
     }
   }, {passive:true});
@@ -558,18 +665,24 @@ function addSwipe(el, onLeft, onRight) {
   // mouse drag for PC
   el.addEventListener('mousedown', e=>{
     startX=e.clientX; startY=e.clientY; moved=false;
+    mouseDown=true;
     e.preventDefault();
   });
   el.addEventListener('mousemove', e=>{
+    if (!mouseDown) return;
     if (Math.abs(e.clientX-startX)>8) moved=true;
   });
   el.addEventListener('mouseup', e=>{
+    if (!mouseDown) return;
+    mouseDown=false;
     const dx=e.clientX-startX;
     const dy=e.clientY-startY;
     if (moved && Math.abs(dx)>Math.abs(dy) && Math.abs(dx)>50) {
+      suppressTapBriefly();
       if (dx<0) onLeft(); else onRight();
     }
   });
+  el.addEventListener('mouseleave', ()=>{ mouseDown=false; });
 }
 
 // Flash card swipe
@@ -589,6 +702,7 @@ addSwipe(
 // Keyboard for PC
 document.addEventListener('keydown', e=>{
   if (currentMode==='flash') {
+    if (document.getElementById('completion').classList.contains('show')) return;
     if (e.key==='ArrowRight') slideFlash(1);
     if (e.key==='ArrowLeft')  slideFlash(-1);
     if (e.key===' ') { e.preventDefault(); tapCard(flashIndex); }
@@ -603,6 +717,7 @@ document.addEventListener('keydown', e=>{
 // ===========================
 function slideAudio(idx, animate=true) {
   const track = document.getElementById('npTrack');
+  idx = clampIndex(idx, ALL_CARDS.length);
   if (!animate) track.classList.add('no-transition');
   track.style.transform = `translateX(-${idx * 100}%)`;
   if (!animate) requestAnimationFrame(()=>requestAnimationFrame(()=>track.classList.remove('no-transition')));
@@ -612,30 +727,46 @@ function slideAudio(idx, animate=true) {
   document.querySelectorAll('.waveform').forEach((w,i)=>{
     w.classList.toggle('paused', !(audioPlaying && i===idx));
   });
+  saveProgress();
 }
 
 function jumpAudio(idx) {
   if (idx<0 || idx>=ALL_CARDS.length) return;
   const wasPlaying = audioPlaying;
   if (wasPlaying) {
+    audioRunId++;
     audioAbort = true;
     audioPlaying = false;
-    window.speechSynthesis.cancel();
+    cancelSpeech();
   }
   slideAudio(idx);
   if (wasPlaying) {
+    const resumeRunId = audioRunId;
     setTimeout(()=>{
+      if (audioRunId !== resumeRunId) return;
       audioAbort = false;
       audioPlaying = true;
-      runLoop();
+      setBtnPlay(true);
+      audioRunId++;
+      runLoop(audioRunId);
     }, 300);
   }
+}
+
+function cancelSpeech() {
+  if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+}
+
+function speakCardEnglish(e, index) {
+  const card = deck[index];
+  if (!card) return;
+  speakOne(e, card.en, 'en-US');
 }
 
 function speakOne(e, text, lang) {
   if (e) e.stopPropagation();
   if (!('speechSynthesis' in window)) return;
-  window.speechSynthesis.cancel();
+  cancelSpeech();
   const u = new SpeechSynthesisUtterance(text);
   u.lang = lang; u.rate = audioSpeed;
   window.speechSynthesis.speak(u);
@@ -644,10 +775,16 @@ function speakOne(e, text, lang) {
 function speakPromise(text, lang) {
   return new Promise(resolve=>{
     if (!('speechSynthesis' in window)) { resolve(); return; }
-    window.speechSynthesis.cancel();
+    cancelSpeech();
     const u = new SpeechSynthesisUtterance(text);
     u.lang = lang; u.rate = audioSpeed;
-    u.onend = resolve; u.onerror = resolve;
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      resolve();
+    };
+    u.onend = finish; u.onerror = finish;
     window.speechSynthesis.speak(u);
   });
 }
@@ -656,9 +793,9 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function runLoop() {
+async function runLoop(runId = audioRunId) {
   const total = ALL_CARDS.length;
-  while (audioPlaying && !audioAbort && audioIndex < total) {
+  while (audioPlaying && !audioAbort && audioIndex < total && runId === audioRunId) {
     const i = audioIndex;
     const [ja, en] = ALL_CARDS[i];
 
@@ -667,16 +804,16 @@ async function runLoop() {
     if (wf) wf.classList.remove('paused');
 
     await speakPromise(ja, 'ja-JP');
-    if (!audioPlaying || audioAbort || audioIndex !== i) break;
+    if (!audioPlaying || audioAbort || audioIndex !== i || runId !== audioRunId) break;
 
     await sleep(audioIntervalMs);
-    if (!audioPlaying || audioAbort || audioIndex !== i) break;
+    if (!audioPlaying || audioAbort || audioIndex !== i || runId !== audioRunId) break;
 
     await speakPromise(en, 'en-US');
-    if (!audioPlaying || audioAbort || audioIndex !== i) break;
+    if (!audioPlaying || audioAbort || audioIndex !== i || runId !== audioRunId) break;
 
     await sleep(audioIntervalMs);
-    if (!audioPlaying || audioAbort || audioIndex !== i) break;
+    if (!audioPlaying || audioAbort || audioIndex !== i || runId !== audioRunId) break;
 
     if (wf) wf.classList.add('paused');
 
@@ -687,6 +824,7 @@ async function runLoop() {
       audioIndex = 0;
       slideAudio(0, false);
       setBtnPlay(false);
+      saveProgress();
       break;
     }
     slideAudio(next);
@@ -695,28 +833,34 @@ async function runLoop() {
 
 function togglePlay() {
   if (audioPlaying) {
+    audioRunId++;
     audioPlaying = false;
     audioAbort = true;
-    window.speechSynthesis.cancel();
+    cancelSpeech();
     document.querySelectorAll('.waveform').forEach(w=>w.classList.add('paused'));
     setBtnPlay(false);
+    saveProgress();
   } else {
     audioAbort = false;
     audioPlaying = true;
+    audioRunId++;
     setBtnPlay(true);
-    runLoop();
+    runLoop(audioRunId);
+    saveProgress();
   }
 }
 
 function stopAudio() {
+  audioRunId++;
   audioAbort = true;
   audioPlaying = false;
-  window.speechSynthesis.cancel();
+  cancelSpeech();
   audioIndex = 0;
   slideAudio(0, false);
   document.querySelectorAll('.waveform').forEach(w=>w.classList.add('paused'));
   setBtnPlay(false);
   updateProgress(0, ALL_CARDS.length);
+  saveProgress();
 }
 
 function setBtnPlay(playing) {
@@ -732,21 +876,36 @@ function setSpeed(btn) {
   document.querySelectorAll('.speed-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   audioSpeed = parseFloat(btn.dataset.speed);
+  saveProgress();
 }
 
 function setIntervalMs(btn) {
   document.querySelectorAll('.interval-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   audioIntervalMs = parseInt(btn.dataset.ms);
+  saveProgress();
+}
+
+function syncAudioControls() {
+  document.querySelectorAll('.speed-btn').forEach(btn=>{
+    btn.classList.toggle('active', Number(btn.dataset.speed) === audioSpeed);
+  });
+  document.querySelectorAll('.interval-btn').forEach(btn=>{
+    btn.classList.toggle('active', Number(btn.dataset.ms) === audioIntervalMs);
+  });
 }
 
 // ===========================
 // INIT
 // ===========================
+loadProgress();
 buildFlashCards();
 buildAudioSlots();
-slideFlashTo(0, false);
-slideAudio(0, false);
+syncAudioControls();
+slideFlashTo(flashIndex, false);
+slideAudio(audioIndex, false);
+setMode(currentMode, false);
+window.addEventListener('beforeunload', saveProgress);
 </script>
 </body>
 </html>
