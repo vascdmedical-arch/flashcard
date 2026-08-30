@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>診察会話 フラッシュカード</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#1a2744;--teal:#2a9d8f;--teal-light:#3bbfb0;--cream:#f8f5f0;--gold:#e9c46a;--coral:#e76f51;--white:#fff;--shadow:0 20px 60px rgba(26,39,68,.18)}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+body{font-family:'Noto Sans JP',sans-serif;background:var(--navy);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:16px 16px 60px;overflow-x:hidden}
+body::before{content:'';position:fixed;top:-200px;right:-200px;width:600px;height:600px;background:radial-gradient(circle,rgba(42,157,143,.15) 0%,transparent 70%);pointer-events:none}
+header{text-align:center;margin-bottom:14px}
+header h1{font-family:'Lora',serif;font-size:clamp(1.1rem,4.5vw,1.5rem);color:var(--cream);letter-spacing:.04em;margin-bottom:2px}
+header p{color:var(--teal-light);font-size:.72rem;font-weight:300;letter-spacing:.1em}
+
+/* mode bar */
+.mode-bar{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;justify-content:center}
+.mode-btn{padding:9px 16px;border:none;border-radius:50px;font-family:'Noto Sans JP',sans-serif;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap}
+.mode-btn.active{background:var(--teal);color:#fff;box-shadow:0 4px 16px rgba(42,157,143,.4)}
+.mode-btn:not(.active){background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.6)}
+
+/* progress */
+.progress-wrap{width:100%;max-width:480px;margin-bottom:12px}
+.progress-info{display:flex;justify-content:space-between;align-items:center;color:rgba(255,255,255,.5);font-size:.72rem;margin-bottom:6px}
+.card-num{color:var(--gold);font-weight:700;font-size:.88rem}
+.progress-bar-bg{width:100%;height:4px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden}
+.progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--teal),var(--teal-light));border-radius:2px;transition:width .4s ease}
+.stats{display:flex;gap:10px;margin-bottom:12px}
+.stat-chip{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:4px 12px;font-size:.75rem;color:rgba(255,255,255,.6)}
+.stat-chip .dot{width:7px;height:7px;border-radius:50%}
+.dot-ok{background:var(--teal)}.dot-retry{background:var(--coral)}.dot-fav{background:var(--gold)}
+.stat-chip b{color:#fff;font-weight:700}
+
+/* flash card */
+.card-viewport{width:100%;max-width:480px;overflow:hidden;margin-bottom:12px;border-radius:20px}
+.card-track{display:flex;transition:transform .3s cubic-bezier(.4,0,.2,1);will-change:transform}
+.card-track.no-transition{transition:none}
+.card-slot{flex:0 0 100%;padding:0 2px}
+.card{width:100%;min-height:240px;position:relative;transform-style:preserve-3d;transition:transform .5s ease;cursor:pointer;border-radius:20px}
+.card.flipped{transform:rotateY(180deg)}
+.card-face{position:absolute;inset:0;border-radius:20px;backface-visibility:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 22px;text-align:center}
+.card-front{background:var(--white);box-shadow:var(--shadow)}
+.card-back{background:linear-gradient(135deg,var(--teal) 0%,#1a6b61 100%);transform:rotateY(180deg);box-shadow:var(--shadow)}
+.card-label{font-size:.63rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;margin-bottom:12px;padding:3px 10px;border-radius:20px}
+.card-front .card-label{background:rgba(42,157,143,.12);color:var(--teal)}
+.card-back .card-label{background:rgba(255,255,255,.15);color:rgba(255,255,255,.9)}
+.card-text{font-size:clamp(.92rem,3.8vw,1.18rem);line-height:1.7;font-weight:500}
+.card-front .card-text{color:var(--navy)}
+.card-back .card-text{color:#fff;font-family:'Lora',serif;font-style:italic}
+.tap-hint{position:absolute;bottom:11px;right:14px;font-size:.6rem;letter-spacing:.06em;opacity:.35}
+.card-front .tap-hint{color:var(--navy)}.card-back .tap-hint{color:#fff}
+
+/* fav star on card */
+.fav-star{position:absolute;top:10px;left:14px;font-size:1.3rem;cursor:pointer;background:none;border:none;line-height:1;opacity:.35;transition:opacity .2s,transform .2s;z-index:10}
+.fav-star.active{opacity:1;transform:scale(1.2)}
+.fav-star:active{transform:scale(.9)}
+
+.audio-btn{margin-top:16px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);border-radius:50px;padding:8px 18px;color:#fff;font-family:'Noto Sans JP',sans-serif;font-size:.76rem;cursor:pointer;display:flex;align-items:center;gap:6px;transition:background .2s}
+.audio-btn:active{background:rgba(255,255,255,.3)}
+.swipe-hint{display:flex;align-items:center;justify-content:center;gap:14px;color:rgba(255,255,255,.25);font-size:.66rem;margin-bottom:10px;letter-spacing:.04em}
+
+/* action buttons */
+.actions{width:100%;max-width:480px;display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.btn{border:none;border-radius:14px;padding:14px 10px;font-family:'Noto Sans JP',sans-serif;font-size:.85rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:opacity .2s,transform .15s}
+.btn:disabled{opacity:.3;pointer-events:none}
+.btn:active{transform:scale(.97)}
+.btn-ok{background:linear-gradient(135deg,var(--teal),#1a6b61);color:#fff;box-shadow:0 5px 20px rgba(42,157,143,.35)}
+.btn-retry{background:linear-gradient(135deg,var(--coral),#c45b3c);color:#fff;box-shadow:0 5px 20px rgba(231,111,81,.35)}
+.nav{width:100%;max-width:480px;display:flex;gap:8px;justify-content:center;margin-bottom:10px}
+.btn-nav{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:11px 16px;color:var(--cream);font-family:'Noto Sans JP',sans-serif;font-size:.78rem;cursor:pointer;display:flex;align-items:center;gap:5px;transition:background .2s;font-weight:500}
+.btn-nav:active{background:rgba(255,255,255,.18)}
+.btn-nav:disabled{opacity:.3;pointer-events:none}
+
+/* completion */
+.completion{display:none;width:100%;max-width:480px;background:var(--white);border-radius:24px;padding:36px 24px;text-align:center;box-shadow:var(--shadow);margin-top:10px}
+.completion.show{display:block}
+.completion-icon{font-size:2.6rem;margin-bottom:10px}
+.completion h2{font-family:'Lora',serif;color:var(--navy);font-size:1.35rem;margin-bottom:6px}
+.completion p{color:rgba(26,39,68,.5);font-size:.83rem;margin-bottom:22px;line-height:1.6}
+.completion-stats{display:flex;justify-content:center;gap:24px;margin-bottom:24px}
+.completion-stat .num{font-size:1.9rem;font-weight:700;line-height:1}
+.num-ok{color:var(--teal)}.num-retry{color:var(--coral)}
+.completion-stat .lbl{font-size:.7rem;color:rgba(26,39,68,.45);margin-top:4px}
+.btn-restart{width:100%;padding:14px;border:none;border-radius:14px;background:var(--navy);color:#fff;font-family:'Noto Sans JP',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;margin-bottom:10px}
+.btn-restart:active{background:var(--teal)}
+.btn-retry-only{width:100%;padding:12px;border:2px solid var(--coral);border-radius:14px;background:transparent;color:var(--coral);font-family:'Noto Sans JP',sans-serif;font-size:.83rem;font-weight:700;cursor:pointer}
+.btn-retry-only:disabled{opacity:.3;pointer-events:none}
+
+/* add card panel */
+.add-panel{width:100%;max-width:480px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:18px;margin-bottom:12px}
+.add-panel h3{color:var(--cream);font-size:.9rem;font-weight:700;margin-bottom:12px;letter-spacing:.04em}
+.add-input{width:100%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:10px;padding:10px 14px;color:#fff;font-family:'Noto Sans JP',sans-serif;font-size:.88rem;margin-bottom:8px;outline:none}
+.add-input::placeholder{color:rgba(255,255,255,.3)}
+.add-input:focus{border-color:var(--teal);background:rgba(255,255,255,.12)}
+.btn-add{width:100%;padding:12px;border:none;border-radius:12px;background:linear-gradient(135deg,var(--gold),#c8a020);color:var(--navy);font-family:'Noto Sans JP',sans-serif;font-size:.88rem;font-weight:700;cursor:pointer}
+.btn-add:active{transform:scale(.97)}
+.add-success{color:var(--teal-light);font-size:.78rem;text-align:center;margin-top:6px;display:none}
+
+/* audio mode */
+.audio-mode{display:none;width:100%;max-width:480px}
+.audio-mode.show{display:block}
+.np-viewport{width:100%;overflow:hidden;border-radius:20px;margin-bottom:14px}
+.np-track{display:flex;transition:transform .3s cubic-bezier(.4,0,.2,1);will-change:transform}
+.np-track.no-transition{transition:none}
+.np-slot{flex:0 0 100%;padding:0 2px}
+.now-playing-card{background:var(--white);border-radius:20px;padding:26px 22px;text-align:center;box-shadow:var(--shadow);min-height:210px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;position:relative}
+.np-fav{position:absolute;top:10px;left:14px;font-size:1.2rem;cursor:pointer;background:none;border:none;opacity:.35;transition:opacity .2s}
+.np-fav.active{opacity:1}
+.np-label{font-size:.63rem;font-weight:700;letter-spacing:.15em;padding:3px 10px;border-radius:20px}
+.np-label.ja{background:rgba(42,157,143,.12);color:var(--teal)}
+.np-text-ja{font-size:clamp(.92rem,3.8vw,1.12rem);color:var(--navy);font-weight:500;line-height:1.7}
+.np-text-en{font-size:clamp(.85rem,3.5vw,1rem);color:#2a6b63;font-family:'Lora',serif;font-style:italic;line-height:1.7}
+.np-counter{font-size:.7rem;color:rgba(26,39,68,.4);margin-top:2px}
+.np-swipe-hint{font-size:.62rem;color:rgba(26,39,68,.25);letter-spacing:.04em}
+.waveform{display:flex;align-items:center;gap:3px;height:26px;margin:2px 0}
+.wave-bar{width:4px;border-radius:2px;background:var(--teal);opacity:.7;animation:wave 1s ease-in-out infinite}
+.wave-bar:nth-child(1){height:8px;animation-delay:0s}
+.wave-bar:nth-child(2){height:18px;animation-delay:.1s}
+.wave-bar:nth-child(3){height:24px;animation-delay:.2s}
+.wave-bar:nth-child(4){height:14px;animation-delay:.3s}
+.wave-bar:nth-child(5){height:20px;animation-delay:.4s}
+.wave-bar:nth-child(6){height:10px;animation-delay:.5s}
+.wave-bar:nth-child(7){height:22px;animation-delay:.15s}
+.wave-bar:nth-child(8){height:16px;animation-delay:.35s}
+.waveform.paused .wave-bar{animation-play-state:paused;opacity:.3}
+@keyframes wave{0%,100%{transform:scaleY(1)}50%{transform:scaleY(1.8)}}
+.audio-controls{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:18px;padding:14px 18px;display:flex;flex-direction:column;gap:12px;margin-bottom:12px}
+.ctrl-row{display:flex;align-items:center;gap:10px}
+.ctrl-label{color:rgba(255,255,255,.45);font-size:.7rem;min-width:56px;letter-spacing:.04em}
+.speed-btns,.interval-btns{display:flex;gap:6px}
+.speed-btn,.interval-btn{padding:5px 11px;border-radius:20px;border:none;font-family:'Noto Sans JP',sans-serif;font-size:.73rem;cursor:pointer;transition:all .2s;background:rgba(255,255,255,.08);color:rgba(255,255,255,.5)}
+.speed-btn.active{background:var(--teal);color:#fff}
+.interval-btn.active{background:var(--gold);color:var(--navy)}
+.play-controls{display:flex;gap:10px;justify-content:center}
+.btn-play{flex:1;max-width:200px;padding:14px 0;border:none;border-radius:14px;font-family:'Noto Sans JP',sans-serif;font-size:.88rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;background:linear-gradient(135deg,var(--teal),#1a6b61);color:#fff;box-shadow:0 5px 20px rgba(42,157,143,.4)}
+.btn-play:active{transform:scale(.97)}
+.btn-stop{padding:14px 18px;border:none;border-radius:14px;font-family:'Noto Sans JP',sans-serif;font-size:.88rem;font-weight:700;cursor:pointer;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.7);display:flex;align-items:center;justify-content:center;gap:6px}
+.btn-stop:active{background:rgba(255,255,255,.2)}
+.fav-empty{background:rgba(233,196,106,.1);border:1px solid rgba(233,196,106,.2);border-radius:12px;padding:14px;color:rgba(255,255,255,.5);font-size:.8rem;text-align:center;margin-bottom:12px;display:none}
+.fav-empty.show{display:block}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>診察会話 フラッシュカード</h1>
+  <p>MEDICAL CONSULTATION FLASHCARDS</p>
+</header>
+
+<div class="mode-bar">
+  <button class="mode-btn active" id="modeFlash" onclick="setMode('flash')">📇 暗記カード</button>
+  <button class="mode-btn" id="modeAudio" onclick="setMode('audio')">🎧 全て再生</button>
+  <button class="mode-btn" id="modeFavAudio" onclick="setMode('favAudio')">⭐ お気に入り再生</button>
+  <button class="mode-btn" id="modeAdd" onclick="setMode('add')">➕ 追加</button>
+</div>
+
+<div class="progress-wrap">
+  <div class="progress-info">
+    <span id="progressLabel">進捗</span>
+    <span class="card-num" id="cardNum">1 / 112</span>
+  </div>
+  <div class="progress-bar-bg">
+    <div class="progress-bar-fill" id="progressFill" style="width:1%"></div>
+  </div>
+</div>
+
+<div class="stats" id="statsBar">
+  <div class="stat-chip"><span class="dot dot-ok"></span>覚えた<b id="okCount">0</b></div>
+  <div class="stat-chip"><span class="dot dot-retry"></span>要復習<b id="retryCount">0</b></div>
+  <div class="stat-chip"><span class="dot dot-fav"></span>⭐<b id="favCount">0</b></div>
+</div>
+
+<!-- ===== FLASH MODE ===== -->
+<div id="flashSection" style="width:100%;max-width:480px">
+  <div class="card-viewport" id="cardViewport">
+    <div class="card-track" id="cardTrack"></div>
+  </div>
+  <div class="swipe-hint">← スワイプで移動 →&nbsp;｜&nbsp;タップで反転&nbsp;｜&nbsp;⭐でお気に入り</div>
+  <div class="actions">
+    <button class="btn btn-retry" id="btnRetry" onclick="markCard('retry')" disabled>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.96"/></svg>もう一度
+    </button>
+    <button class="btn btn-ok" id="btnOk" onclick="markCard('ok')" disabled>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>覚えた！
+    </button>
+  </div>
+  <div class="nav">
+    <button class="btn-nav" id="btnPrev" onclick="slideFlash(-1)" disabled>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>前へ
+    </button>
+    <button class="btn-nav" style="background:rgba(233,196,106,.12);border-color:rgba(233,196,106,.25);color:var(--gold)" onclick="shuffleCards()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/></svg>シャッフル
+    </button>
+    <button class="btn-nav" id="btnNext" onclick="slideFlash(1)">
+      次へ<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>
+  </div>
+  <div class="completion" id="completion">
+    <div class="completion-icon">🎉</div>
+    <h2>完了しました！</h2>
+    <p>全カードを確認しました。<br>結果を確認してもう一度挑戦しましょう。</p>
+    <div class="completion-stats">
+      <div class="completion-stat"><div class="num num-ok" id="finalOk">0</div><div class="lbl">覚えた</div></div>
+      <div class="completion-stat"><div class="num num-retry" id="finalRetry">0</div><div class="lbl">要復習</div></div>
+    </div>
+    <button class="btn-restart" onclick="restartAll()">最初からやり直す</button>
+    <button class="btn-retry-only" id="btnRetryOnly" onclick="restartRetry()">要復習のみ再挑戦</button>
+  </div>
+</div>
+
+<!-- ===== AUDIO MODE ===== -->
+<div class="audio-mode" id="audioMode">
+  <div class="fav-empty" id="favEmpty">⭐ お気に入りが登録されていません。<br>暗記カードの ⭐ ボタンで登録してください。</div>
+  <div class="np-viewport" id="npViewport">
+    <div class="np-track" id="npTrack"></div>
+  </div>
+  <div class="audio-controls">
+    <div class="ctrl-row">
+      <span class="ctrl-label">🔊 速度</span>
+      <div class="speed-btns">
+        <button class="speed-btn" data-speed="0.7" onclick="setSpeed(this)">遅い</button>
+        <button class="speed-btn active" data-speed="0.9" onclick="setSpeed(this)">普通</button>
+        <button class="speed-btn" data-speed="1.1" onclick="setSpeed(this)">速い</button>
+      </div>
+    </div>
+    <div class="ctrl-row">
+      <span class="ctrl-label">⏱ 間隔</span>
+      <div class="interval-btns">
+        <button class="interval-btn" data-ms="500" onclick="setIntervalMs(this)">短い</button>
+        <button class="interval-btn active" data-ms="1200" onclick="setIntervalMs(this)">普通</button>
+        <button class="interval-btn" data-ms="2500" onclick="setIntervalMs(this)">長い</button>
+      </div>
+    </div>
+  </div>
+  <div class="play-controls">
+    <button class="btn-play" id="btnPlay" onclick="togglePlay()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>再生開始
+    </button>
+    <button class="btn-stop" onclick="stopAudio()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>停止
+    </button>
+  </div>
+</div>
+
+<!-- ===== ADD CARD MODE ===== -->
+<div id="addSection" style="display:none;width:100%;max-width:480px">
+  <div class="add-panel">
+    <h3>➕ 新しいカードを追加</h3>
+    <input class="add-input" id="addJa" placeholder="日本語を入力してください" type="text">
+    <input class="add-input" id="addEn" placeholder="Enter English text" type="text">
+    <button class="btn-add" onclick="addCard()">追加する</button>
+    <div class="add-success" id="addSuccess">✅ カードを追加しました！</div>
+  </div>
+  <div id="customCardList" style="width:100%"></div>
+</div>
+
+<script>
+// ===========================
+// DATA
+// ===========================
+const BASE_CARDS = [
+  ["こんにちは","Hello"],
+  ["院長の近藤と申します。","My name is Kondo, the clinic director."],
+  ["席にお座りください。","Please have a seat."],
+  ["病気について詳しくお話を聞かせてください。","Please tell me more about your condition."],
+  ["どちらの脚になりますか？","Which leg is it?"],
+  ["右ですね。","The right one, I see."],
+  ["どのような静脈瘤がありますか？","What kind of varicose veins do you have?"],
+  ["症状について聞かせてください。","Please tell me about your symptoms."],
+  ["むくみはありますか？","Do you have any swelling?"],
+  ["左右差はありますか？","Is there a difference between the left and right sides?"],
+  ["重さだるさはありますか？","Do you feel any heaviness or fatigue?"],
+  ["痛みはどうですか？","How is the pain?"],
+  ["かゆみはありますか？","Do you experience itching?"],
+  ["足の皮膚の変化はありますか？","Have you noticed any changes in the skin on your feet?"],
+  ["脚つれはありますか？","Do you experience leg cramps?"],
+  ["それではそれ以外のことを聞かせてください。","Now, let me ask you about some other things."],
+  ["出産歴はありますか？","Do you have a history of childbirth?"],
+  ["何回出産されましたか？","How many times have you given birth?"],
+  ["立ち仕事の時期はありましたか？","Have you ever had a job that required standing for long periods?"],
+  ["現在はどうですか？","What about now?"],
+  ["ご家族に下肢静脈瘤の方はいますか？","Does anyone in your family have varicose veins?"],
+  ["なにか一生懸命やっていた運動はありますか？","Have you ever been actively involved in any sports or exercise?"],
+  ["他の病気について聞かせてください。","Please tell me about any other medical conditions you have."],
+  ["持病はありますか？","Do you have any chronic conditions?"],
+  ["手術は受けたことがありますか？","Have you ever had surgery?"],
+  ["どのような手術を受けましたか？","What kind of surgery did you have?"],
+  ["アレルギーはありますか？","Do you have any allergies?"],
+  ["内服薬について教えてください。","Please tell me about any medications you are currently taking."],
+  ["それでは脚の診察をしましょう。","Now, let's examine your leg."],
+  ["先ずは、一度私にも足の診察をさせてください。","First, let me examine your leg."],
+  ["脚の超音波検査を行います。","I'm going to perform an ultrasound on your leg."],
+  ["ズボンと靴下を脱いでください。","Please take off your pants and socks."],
+  ["立った状態で検査を行います。","We'll perform the exam while you're standing."],
+  ["後ろを向いてください。","Please turn around."],
+  ["それではこちらを向いてください。","Now, please turn this way."],
+  ["これは脚の横断面です。","This is a cross-section of your leg."],
+  ["これが皮膚で、その下が皮下脂肪です。","This is the skin, and beneath it is subcutaneous fat."],
+  ["ここに見える黒い円が静脈の断面になります。","The black circles you see here are cross-sections of the veins."],
+  ["通常の大きさは直径で２−３mm程度です。","Normally, they are about 2 to 3 mm in diameter."],
+  ["これが約１０mm程度まで拡張しています。","Here, they have dilated to about 10 mm."],
+  ["足の付け根まで見ていきましょう。","Let's take a look all the way up to the groin."],
+  ["原因はここの足の付け根にあります。","The cause lies here at the groin."],
+  ["ここからこの静脈内を血液が下に向かって逆流しています。","From here, blood is flowing backward downward inside this vein."],
+  ["それが原因で下腿部の静脈が膨れて静脈瘤になっています。","This causes the veins in the lower leg to swell, resulting in varicose veins."],
+  ["理由は静脈内の静脈弁が壊れたことで下に向かって流れ始めているからです。","The reason is that the valves inside the vein have failed, allowing blood to flow downward."],
+  ["検査はこれで終了です。","That concludes the examination."],
+  ["ズボンを履いてください。","Please put your pants back on."],
+  ["静脈瘤について説明します。","I'll explain varicose veins."],
+  ["今回は足の付け根から悪くなる大きなタイプの静脈瘤です。","This is a major type of varicose vein that originates in the groin area."],
+  ["この病気は急に悪化したり、命に関わるようなことはありません。","This condition does not worsen suddenly, nor is it life-threatening."],
+  ["ただ自然に治ることもありません。","However, it does not resolve on its own."],
+  ["徐々に進行していきます。","It progresses gradually."],
+  ["治療は２種類です。","There are two types of treatment."],
+  ["一つ目は、弾性ストッキング着用による保存的な治療です。","The first is conservative treatment involving the use of compression stockings."],
+  ["これのメリットは、履くだけで症状が改善することです。","The advantage of this is that symptoms improve simply by wearing them."],
+  ["デメリットは、これで静脈瘤がなくなるわけではなく、あくまで対処療法ということです。","The disadvantage is that it does not eliminate the varicose veins; it is strictly a symptomatic treatment."],
+  ["２つ目は、手術という方法になります。","The second option is surgery."],
+  ["カテーテルを使った焼灼術です。","It is endovenous laser ablation using a catheter."],
+  ["２０分程度で終了する日帰り手術です。","It is an outpatient procedure that takes about 20 minutes."],
+  ["どちらを希望されますか？","Which option would you prefer?"],
+  ["手術を受ける場合は、術前の検査を受けてもらいます。","If you choose to have surgery, you will need to undergo preoperative testing."],
+  ["後日検査に来てもらい、心電図、採血の検査を受けてもらいます。","Please come in for an appointment at a later date to have an electrocardiogram and blood tests."],
+  ["またそのときに手術について詳しく説明させていただきます。","At that time, we will also provide a detailed explanation of the procedure."],
+  ["ストッキングは、後で看護師と一緒にフィッティングをしましょう。","As for the compression stockings, we'll have you try them on with a nurse later."],
+  ["彼女たちは弾性ストッキングの専門家なのでよく相談してください。","They are experts in compression stockings, so please feel free to consult with them."],
+  ["それでは検査の日、手術の日を看護師さんと一緒に決めてください。","Please work with the nurse to schedule the date for your tests and the surgery."],
+  ["静脈瘤の手術について説明していきます。","I will now explain the varicose vein surgery."],
+  ["先ずは受けてもらった検査について見ていきます。","First, let's review the test results you received."],
+  ["こちらが心電図になりますが特に問題ありません。","This is your ECG; there are no particular issues."],
+  ["これが、採血データの結果です。","Here are the results of your blood tests."],
+  ["こちらも特に問題ありません。","There are no particular issues here either."],
+  ["次に静脈瘤について説明します。","Next, I'll explain varicose veins."],
+  ["こちらの絵を使って説明します。","I'll use this diagram to explain."],
+  ["脚の静脈は2種類あります。","There are two types of veins in the legs."],
+  ["一つ目は脚の奥を流れる静脈です。","The first type runs deep within the leg."],
+  ["深部静脈と言います。","These are called deep veins."],
+  ["直径で２cmある、太い静脈です。","They are thick veins with a diameter of about 2 cm."],
+  ["この中を上に向かって血液が流れます。","Blood flows upward through these veins."],
+  ["この血管は特に問題なく、良く血液は流れています。","These veins function normally, and blood flows through them smoothly."],
+  ["もう一つは、足の表面を流れる静脈です。","The other is the veins that run along the surface of the leg."],
+  ["細い静脈ですが、沢山存在しています。","They are thin veins, but there are many of them."],
+  ["その中で、一番代表的な静脈がこれになります。","Among them, this is the most representative vein."],
+  ["名前は大伏在静脈と言われています。","It is called the great saphenous vein."],
+  ["表面の静脈の中で一番大きな静脈です。","It is the largest of the superficial veins."],
+  ["ただ、直径で約２mmの血管です。","However, it is a blood vessel with a diameter of about 2 mm."],
+  ["この中を血液は上に向かって流れています。","Blood flows upward through this vein."],
+  ["前回は、この静脈の弁が壊れ、血液が逆流したため、","Last time, the valves in this vein failed, causing blood to flow backward."],
+  ["この静脈が太くなり、周りに静脈瘤が出てきたのです。","The vein enlarged and varicose veins appeared around it."],
+  ["前回の手術では、この大伏在静脈の抜去術を行っています。","In the previous surgery, we performed a saphenectomy to remove this great saphenous vein."],
+  ["残念ながら、今回はその場所から再発が起きてしまいました。","Unfortunately, a recurrence has occurred at that same site this time."],
+  ["今回は足のつけ根近くの大伏在静脈の枝の静脈の弁が壊れ、逆流が起きました。","This time, the valves in a branch of the great saphenous vein near the groin failed, causing reflux."],
+  ["静脈が拡張してしまいました。","The vein has dilated."],
+  ["手術では、この拡張した静脈をレーザーで焼灼し閉塞させます。","During the surgery, we will use a laser to cauterize and close off this dilated vein."],
+  ["また残りの静脈瘤は硬化療法を行います。","We will also perform sclerotherapy on the remaining varicose veins."],
+  ["硬化療法は注射で行う治療です。","Sclerotherapy is a treatment performed by injection."],
+  ["レーザーで焼灼した静脈は徐々に吸収されて、一年ほどで消失します。","The vein treated with laser ablation will gradually be reabsorbed and disappear within about a year."],
+  ["残った静脈瘤は3か月後をめどに、硬化療法で治療します。","The remaining varicose veins will be treated with sclerotherapy, typically around three months later."],
+  ["手術は局所麻酔で行います。","The procedure is performed under local anesthesia."],
+  ["手術の間は少し眠ってもらいます。","You will be put to sleep briefly during the procedure."],
+  ["手術時間は約20分です。","The procedure takes about 20 minutes."],
+  ["終わればすぐ歩けます。","You will be able to walk immediately afterward."],
+  ["痛みも特にありません。","There is no significant pain."],
+  ["翌日からは、大腿部で突っ張る感じや、圧迫痛が少しあります。","Starting the next day, you may experience a slight tightness or tenderness in the thigh."],
+  ["合併症についてお話します。","Now, let me discuss complications."],
+  ["出血、創感染はめったにありません。","Bleeding and wound infections are very rare."],
+  ["内出血が時々ありますが、一週間ほどで消えていきます。","Bruising occasionally occurs, but it usually disappears within about a week."],
+  ["血栓性静脈炎がまれに起きますが、これも自然に解消します。","Thrombophlebitis rarely occurs, but it also resolves on its own."],
+  ["神経障害、アレルギーはめったにありません。","Nerve damage and allergic reactions are very rare."],
+  ["私の話はここまでです。","That concludes my explanation."],
+  ["何か質問はありますか？","Do you have any questions?"],
+  ["これは同意書になります。","This is the consent form."],
+  ["ここにサインをして、手術の当日に持ってきてください。","Please sign here and bring it with you on the day of the surgery."]
+];
+
+// ===========================
+// STATE
+// ===========================
+let customCards = JSON.parse(localStorage.getItem('customCards') || '[]');
+let favorites   = new Set(JSON.parse(localStorage.getItem('favorites') || '[]'));
+
+function getAllCards() { return [...BASE_CARDS, ...customCards]; }
+
+let deck = [...getAllCards()];
+let flashIndex = 0;
+let flippedSet = new Set();
+let results = {};
+let currentMode = 'flash';
+
+let audioCards = [];   // cards used in current audio session
+let audioIndex = 0;
+let audioPlaying = false;
+let audioSpeed = 0.9;
+let audioIntervalMs = 1200;
+let audioAbort = false;
+
+// ===========================
+// SAVE
+// ===========================
+function saveCustom() { localStorage.setItem('customCards', JSON.stringify(customCards)); }
+function saveFavs()   { localStorage.setItem('favorites', JSON.stringify([...favorites])); }
+
+// ===========================
+// FAV HELPERS
+// ===========================
+function toggleFav(globalIdx) {
+  if (favorites.has(globalIdx)) favorites.delete(globalIdx);
+  else favorites.add(globalIdx);
+  saveFavs();
+  refreshFavUI();
+  updateStats();
+}
+
+function refreshFavUI() {
+  // update all star buttons
+  document.querySelectorAll('.fav-star').forEach(btn => {
+    const idx = parseInt(btn.dataset.idx);
+    btn.classList.toggle('active', favorites.has(idx));
+    btn.textContent = favorites.has(idx) ? '⭐' : '☆';
+  });
+  document.querySelectorAll('.np-fav').forEach(btn => {
+    const idx = parseInt(btn.dataset.idx);
+    btn.classList.toggle('active', favorites.has(idx));
+    btn.textContent = favorites.has(idx) ? '⭐' : '☆';
+  });
+}
+
+// ===========================
+// BUILD FLASH CARDS
+// ===========================
+function buildFlashCards() {
+  const track = document.getElementById('cardTrack');
+  track.innerHTML = '';
+  deck.forEach((pair, i) => {
+    const globalIdx = getAllCards().indexOf(pair);
+    const isFav = favorites.has(i); // use deck index as global for simplicity
+    const slot = document.createElement('div');
+    slot.className = 'card-slot';
+    const jaEsc = pair[0].replace(/'/g,"\\'").replace(/"/g,'&quot;');
+    const enEsc = pair[1].replace(/'/g,"\\'").replace(/"/g,'&quot;');
+    slot.innerHTML = `
+      <div class="card" id="fc${i}">
+        <div class="card-face card-front">
+          <button class="fav-star${isFav?' active':''}" data-idx="${i}" onclick="tapFavFlash(event,${i})">${isFav?'⭐':'☆'}</button>
+          <div class="card-label">🇯🇵 日本語</div>
+          <div class="card-text">${pair[0]}</div>
+          <div class="tap-hint">↩ タップして英語を見る</div>
+        </div>
+        <div class="card-face card-back">
+          <button class="fav-star${isFav?' active':''}" data-idx="${i}" onclick="tapFavFlash(event,${i})">${isFav?'⭐':'☆'}</button>
+          <div class="card-label">🇺🇸 English</div>
+          <div class="card-text">${pair[1]}</div>
+          <button class="audio-btn" onclick="speakOne(event,'${enEsc}','en-US')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+            英語を読み上げる
+          </button>
+          <div class="tap-hint">↩ タップして戻る</div>
+        </div>
+      </div>`;
+    // tap to flip
+    slot.querySelector('.card').addEventListener('click', () => tapCard(i));
+    track.appendChild(slot);
+  });
+}
+
+function tapFavFlash(e, i) {
+  e.stopPropagation();
+  toggleFav(i);
+}
+
+// ===========================
+// BUILD AUDIO SLOTS
+// ===========================
+function buildAudioSlots() {
+  const track = document.getElementById('npTrack');
+  track.innerHTML = '';
+  audioCards.forEach((pair, i) => {
+    const globalIdx = pair._idx !== undefined ? pair._idx : i;
+    const isFav = favorites.has(globalIdx);
+    const slot = document.createElement('div');
+    slot.className = 'np-slot';
+    slot.innerHTML = `
+      <div class="now-playing-card">
+        <button class="np-fav${isFav?' active':''}" data-idx="${globalIdx}" onclick="tapFavAudio(event,${globalIdx})">${isFav?'⭐':'☆'}</button>
+        <div class="np-label ja">🇯🇵 日本語 → 🇺🇸 English</div>
+        <div class="np-text-ja">${pair[0]}</div>
+        <div class="waveform paused" id="wf${i}">
+          <div class="wave-bar"></div><div class="wave-bar"></div>
+          <div class="wave-bar"></div><div class="wave-bar"></div>
+          <div class="wave-bar"></div><div class="wave-bar"></div>
+          <div class="wave-bar"></div><div class="wave-bar"></div>
+        </div>
+        <div class="np-text-en">${pair[1]}</div>
+        <div class="np-counter">${i+1} / ${audioCards.length}</div>
+        <div class="np-swipe-hint">← スワイプで移動 →</div>
+      </div>`;
+    track.appendChild(slot);
+  });
+}
+
+function tapFavAudio(e, globalIdx) {
+  e.stopPropagation();
+  toggleFav(globalIdx);
+}
+
+// ===========================
+// MODE
+// ===========================
+function setMode(mode) {
+  currentMode = mode;
+  ['flash','audio','favAudio','add'].forEach(m => {
+    document.getElementById('mode'+m.charAt(0).toUpperCase()+m.slice(1)).classList.toggle('active', mode===m);
+  });
+  document.getElementById('flashSection').style.display  = mode==='flash' ? '' : 'none';
+  document.getElementById('audioMode').style.display     = (mode==='audio'||mode==='favAudio') ? '' : 'none';
+  document.getElementById('audioMode').classList.toggle('show', mode==='audio'||mode==='favAudio');
+  document.getElementById('addSection').style.display    = mode==='add' ? '' : 'none';
+  document.getElementById('statsBar').style.display      = mode==='flash' ? '' : 'none';
+  document.getElementById('progressLabel').textContent   = mode==='flash' ? '進捗' : '再生中';
+
+  if (mode==='audio') {
+    stopAudio();
+    audioCards = getAllCards().map((c,i)=>({...c, 0:c[0], 1:c[1], _idx:i}));
+    // flatten: audioCards is array of pairs with _idx
+    audioCards = getAllCards().map((c,i)=>[c[0],c[1],i]);
+    document.getElementById('favEmpty').classList.remove('show');
+    buildAudioSlots();
+    slideAudio(0, false);
+    updateProgress(0, audioCards.length);
+  } else if (mode==='favAudio') {
+    stopAudio();
+    const all = getAllCards();
+    const favList = [...favorites].sort((a,b)=>a-b);
+    if (favList.length===0) {
+      audioCards = [];
+      buildAudioSlots();
+      document.getElementById('favEmpty').classList.add('show');
+      document.getElementById('npViewport').style.display='none';
+      return;
+    }
+    document.getElementById('favEmpty').classList.remove('show');
+    document.getElementById('npViewport').style.display='';
+    audioCards = favList.map(i=>[all[i][0], all[i][1], i]);
+    buildAudioSlots();
+    slideAudio(0, false);
+    updateProgress(0, audioCards.length);
+  } else if (mode==='flash') {
+    slideFlashTo(flashIndex, false);
+    updateProgress(flashIndex, deck.length);
+    updateStats();
+  } else if (mode==='add') {
+    renderCustomList();
+    document.getElementById('progressWrap') && (document.getElementById('progressWrap').style.display='none');
+  }
+}
+
+// ===========================
+// FLASH LOGIC
+// ===========================
+function tapCard(i) {
+  const card = document.getElementById('fc'+i);
+  if (!card) return;
+  if (flippedSet.has(i)) { flippedSet.delete(i); card.classList.remove('flipped'); }
+  else { flippedSet.add(i); card.classList.add('flipped'); }
+  const flipped = flippedSet.has(i);
+  document.getElementById('btnOk').disabled = !flipped;
+  document.getElementById('btnRetry').disabled = !flipped;
+}
+
+function slideFlashTo(idx, animate=true) {
+  const track = document.getElementById('cardTrack');
+  if (!animate) track.classList.add('no-transition');
+  track.style.transform = `translateX(-${idx*100}%)`;
+  if (!animate) requestAnimationFrame(()=>requestAnimationFrame(()=>track.classList.remove('no-transition')));
+  flashIndex = idx;
+  const flipped = flippedSet.has(idx);
+  document.getElementById('btnOk').disabled = !flipped;
+  document.getElementById('btnRetry').disabled = !flipped;
+  document.getElementById('btnPrev').disabled = idx===0;
+  document.getElementById('btnNext').disabled = idx>=deck.length-1;
+  updateProgress(idx, deck.length);
+  updateStats();
+}
+
+function slideFlash(dir) {
+  const next = flashIndex + dir;
+  if (next<0||next>=deck.length) return;
+  slideFlashTo(next);
+}
+
+function markCard(type) {
+  results[flashIndex] = type;
+  updateStats();
+  if (flashIndex < deck.length-1) slideFlashTo(flashIndex+1);
+  else showCompletion();
+}
+
+function updateStats() {
+  const ok    = Object.values(results).filter(v=>v==='ok').length;
+  const retry = Object.values(results).filter(v=>v==='retry').length;
+  document.getElementById('okCount').textContent = ok;
+  document.getElementById('retryCount').textContent = retry;
+  document.getElementById('favCount').textContent = favorites.size;
+}
+
+function updateProgress(idx, total) {
+  document.getElementById('cardNum').textContent = `${idx+1} / ${total}`;
+  document.getElementById('progressFill').style.width = Math.max(1,(idx/total)*100)+'%';
+}
+
+function shuffleCards() {
+  for (let i=deck.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[deck[i],deck[j]]=[deck[j],deck[i]];}
+  flippedSet.clear(); results={};
+  buildFlashCards(); slideFlashTo(0,false);
+}
+
+function showCompletion() {
+  document.getElementById('completion').classList.add('show');
+  const ok=Object.values(results).filter(v=>v==='ok').length;
+  const retry=Object.values(results).filter(v=>v==='retry').length;
+  document.getElementById('finalOk').textContent=ok;
+  document.getElementById('finalRetry').textContent=retry;
+  document.getElementById('btnRetryOnly').disabled=retry===0;
+}
+
+function restartAll() {
+  deck=[...getAllCards()]; flippedSet.clear(); results={};
+  document.getElementById('completion').classList.remove('show');
+  buildFlashCards(); slideFlashTo(0,false);
+}
+
+function restartRetry() {
+  const retryCards=deck.filter((_,i)=>results[i]==='retry');
+  if (!retryCards.length) return;
+  deck=retryCards; flippedSet.clear(); results={};
+  document.getElementById('completion').classList.remove('show');
+  buildFlashCards(); slideFlashTo(0,false);
+}
+
+// ===========================
+// ADD CARD
+// ===========================
+function addCard() {
+  const ja = document.getElementById('addJa').value.trim();
+  const en = document.getElementById('addEn').value.trim();
+  if (!ja || !en) { alert('日本語と英語の両方を入力してください。'); return; }
+  customCards.push([ja, en]);
+  saveCustom();
+  deck = [...getAllCards()];
+  buildFlashCards();
+  document.getElementById('addJa').value = '';
+  document.getElementById('addEn').value = '';
+  const s = document.getElementById('addSuccess');
+  s.style.display='block';
+  setTimeout(()=>s.style.display='none', 2000);
+  renderCustomList();
+}
+
+function deleteCustomCard(i) {
+  if (!confirm('このカードを削除しますか？')) return;
+  customCards.splice(i,1);
+  saveCustom();
+  deck=[...getAllCards()];
+  buildFlashCards();
+  renderCustomList();
+}
+
+function renderCustomList() {
+  const el = document.getElementById('customCardList');
+  if (customCards.length===0) { el.innerHTML=''; return; }
+  el.innerHTML = `<div style="color:rgba(255,255,255,.5);font-size:.75rem;margin-bottom:8px;letter-spacing:.06em">追加済みカード（${customCards.length}枚）</div>` +
+    customCards.map((c,i)=>`
+      <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:10px">
+        <div style="flex:1;min-width:0">
+          <div style="color:#fff;font-size:.82rem;margin-bottom:3px">${c[0]}</div>
+          <div style="color:var(--teal-light);font-size:.78rem;font-style:italic">${c[1]}</div>
+        </div>
+        <button onclick="deleteCustomCard(${i})" style="background:rgba(231,111,81,.2);border:1px solid rgba(231,111,81,.3);color:var(--coral);border-radius:8px;padding:5px 10px;cursor:pointer;font-size:.72rem;white-space:nowrap">削除</button>
+      </div>`).join('');
+}
+
+// ===========================
+// SWIPE
+// ===========================
+function addSwipe(el, onLeft, onRight) {
+  let sx=0,sy=0,moved=false;
+  el.addEventListener('touchstart',e=>{sx=e.touches[0].clientX;sy=e.touches[0].clientY;moved=false;},{passive:true});
+  el.addEventListener('touchmove', e=>{moved=true;},{passive:true});
+  el.addEventListener('touchend',e=>{
+    const dx=e.changedTouches[0].clientX-sx, dy=e.changedTouches[0].clientY-sy;
+    if(Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>35){dx<0?onLeft():onRight();}
+  },{passive:true});
+  el.addEventListener('mousedown',e=>{sx=e.clientX;sy=e.clientY;moved=false;e.preventDefault();});
+  el.addEventListener('mousemove',e=>{if(Math.abs(e.clientX-sx)>8)moved=true;});
+  el.addEventListener('mouseup',e=>{
+    const dx=e.clientX-sx,dy=e.clientY-sy;
+    if(moved&&Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>50){dx<0?onLeft():onRight();}
+  });
+}
+
+addSwipe(document.getElementById('cardViewport'),
+  ()=>{if(flashIndex<deck.length-1)slideFlash(1);},
+  ()=>{if(flashIndex>0)slideFlash(-1);}
+);
+addSwipe(document.getElementById('npViewport'),
+  ()=>{if(audioIndex<audioCards.length-1)jumpAudio(audioIndex+1);},
+  ()=>{if(audioIndex>0)jumpAudio(audioIndex-1);}
+);
+
+document.addEventListener('keydown',e=>{
+  if(currentMode==='flash'){
+    if(e.key==='ArrowRight')slideFlash(1);
+    if(e.key==='ArrowLeft')slideFlash(-1);
+    if(e.key===' '){e.preventDefault();tapCard(flashIndex);}
+  } else if(currentMode==='audio'||currentMode==='favAudio'){
+    if(e.key==='ArrowRight')jumpAudio(audioIndex+1);
+    if(e.key==='ArrowLeft')jumpAudio(audioIndex-1);
+  }
+});
+
+// ===========================
+// AUDIO
+// ===========================
+function slideAudio(idx, animate=true) {
+  const track=document.getElementById('npTrack');
+  if(!animate)track.classList.add('no-transition');
+  track.style.transform=`translateX(-${idx*100}%)`;
+  if(!animate)requestAnimationFrame(()=>requestAnimationFrame(()=>track.classList.remove('no-transition')));
+  audioIndex=idx;
+  updateProgress(idx,audioCards.length);
+  document.querySelectorAll('.waveform').forEach((w,i)=>{
+    w.classList.toggle('paused',!(audioPlaying&&i===idx));
+  });
+}
+
+function jumpAudio(idx) {
+  if(idx<0||idx>=audioCards.length)return;
+  const was=audioPlaying;
+  if(was){audioAbort=true;audioPlaying=false;window.speechSynthesis.cancel();}
+  slideAudio(idx);
+  if(was){setTimeout(()=>{audioAbort=false;audioPlaying=true;runLoop();},300);}
+}
+
+function speakOne(e,text,lang){
+  if(e)e.stopPropagation();
+  if(!('speechSynthesis' in window))return;
+  window.speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang=lang;u.rate=audioSpeed;
+  window.speechSynthesis.speak(u);
+}
+
+function speakPromise(text,lang){
+  return new Promise(resolve=>{
+    if(!('speechSynthesis' in window)){resolve();return;}
+    window.speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(text);
+    u.lang=lang;u.rate=audioSpeed;
+    u.onend=resolve;u.onerror=resolve;
+    window.speechSynthesis.speak(u);
+  });
+}
+
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+
+async function runLoop(){
+  const total=audioCards.length;
+  while(audioPlaying&&!audioAbort&&audioIndex<total){
+    const i=audioIndex;
+    const card=audioCards[i];
+    const ja=card[0],en=card[1];
+    const wf=document.getElementById('wf'+i);
+    if(wf)wf.classList.remove('paused');
+    await speakPromise(ja,'ja-JP');
+    if(!audioPlaying||audioAbort||audioIndex!==i)break;
+    await sleep(audioIntervalMs);
+    if(!audioPlaying||audioAbort||audioIndex!==i)break;
+    await speakPromise(en,'en-US');
+    if(!audioPlaying||audioAbort||audioIndex!==i)break;
+    await sleep(audioIntervalMs);
+    if(!audioPlaying||audioAbort||audioIndex!==i)break;
+    if(wf)wf.classList.add('paused');
+    const next=i+1;
+    if(next>=total){audioPlaying=false;audioIndex=0;slideAudio(0,false);setBtnPlay(false);break;}
+    slideAudio(next);
+  }
+}
+
+function togglePlay(){
+  if(audioPlaying){
+    audioPlaying=false;audioAbort=true;
+    window.speechSynthesis.cancel();
+    document.querySelectorAll('.waveform').forEach(w=>w.classList.add('paused'));
+    setBtnPlay(false);
+  } else {
+    if(audioCards.length===0)return;
+    audioAbort=false;audioPlaying=true;
+    setBtnPlay(true);runLoop();
+  }
+}
+
+function stopAudio(){
+  audioAbort=true;audioPlaying=false;
+  window.speechSynthesis.cancel();
+  audioIndex=0;
+  if(audioCards.length>0)slideAudio(0,false);
+  document.querySelectorAll('.waveform').forEach(w=>w.classList.add('paused'));
+  setBtnPlay(false);
+}
+
+function setBtnPlay(playing){
+  const btn=document.getElementById('btnPlay');
+  btn.innerHTML=playing
+    ?'<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>一時停止'
+    :'<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>再生開始';
+}
+
+function setSpeed(btn){
+  document.querySelectorAll('.speed-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');audioSpeed=parseFloat(btn.dataset.speed);
+}
+
+function setIntervalMs(btn){
+  document.querySelectorAll('.interval-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');audioIntervalMs=parseInt(btn.dataset.ms);
+}
+
+// ===========================
+// INIT
+// ===========================
+deck=[...getAllCards()];
+buildFlashCards();
+slideFlashTo(0,false);
+updateStats();
+</script>
+</body>
+</html>
